@@ -1,9 +1,9 @@
 package com.github.cyfko.sc_verify.controller;
 
+import com.github.cyfko.sc_verify.dto.CommandDTO;
+import com.github.cyfko.sc_verify.dto.QueryDTO;
 import io.github.cyfko.dverify.DataSigner;
 import io.github.cyfko.dverify.DataVerifier;
-import io.github.cyfko.dverify.exceptions.DataExtractionException;
-import io.github.cyfko.dverify.exceptions.JsonEncodingException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,22 +22,14 @@ public class SignerController {
     }
 
     @PostMapping("/sign")
-    public ResponseEntity<?> signRequest(@RequestBody Map<String, Object> requestData, @RequestParam long seconds) {
-        try {
-            final String token = dataSigner.sign(requestData, Duration.ofSeconds(seconds));
-            return ResponseEntity.ok(token);
-        } catch (JsonEncodingException e) {
-            return ResponseEntity.badRequest().body("The request data is invalid. Expect a valid JSON object");
-        }
+    public ResponseEntity<?> signRequest(@RequestBody CommandDTO command) {
+        final String token = dataSigner.sign(command.getData(), Duration.ofSeconds(command.getDuration()));
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
-    @GetMapping("/verify")
-    public ResponseEntity<?> verifyRequest(@RequestBody String requestData) {
-        try {
-            final var token = dataVerifier.verify(requestData, Map.class);
-            return ResponseEntity.ok(token);
-        } catch (DataExtractionException e){
-            return ResponseEntity.badRequest().body("Your token is either invalid or expired");
-        }
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyRequest(@RequestBody QueryDTO query) {
+        final var data = dataVerifier.verify(query.getToken(), Object.class);
+        return ResponseEntity.ok(Map.of("data", data));
     }
 }
