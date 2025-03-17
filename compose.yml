@@ -1,0 +1,53 @@
+services:
+  sc-verify:
+    image: darlinho/sc-verify:latest
+    container_name: sc-verify
+    restart: unless-stopped
+    environment:
+      DVER_KAFKA_BOOSTRAP_SERVERS: kafka:9092
+      DVER_TOKEN_VERIFIER_TOPIC: token-verifier
+      DVER_EMBEDDED_DATABASE_PATH: /data/dverify_db_data
+      DVER_KEYS_ROTATION_MINUTES: 1440
+      DVER_CLEANUP_INTERVAL_MINUTES: 60
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+    networks:
+      - sc-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2182:2181"
+    networks:
+      - sc-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_EXTERNAL://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_EXTERNAL://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    depends_on:
+      - zookeeper
+    networks:
+      - sc-network
+
+
+networks:
+  sc-network:
+    driver: bridge
